@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
-from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import os
 from PIL import Image
 import io
@@ -12,6 +9,7 @@ import re
 import logging
 from datetime import datetime
 import urllib.parse # Needed for Google Maps link
+from functions import fetch_coordinates # Import geocoding function from functions.py
 
 # --- Configuration and Setup ---
 st.set_page_config(layout="wide", page_title="Event Program")
@@ -21,44 +19,6 @@ DATA_FILE = "data.csv"
 IMAGE_DIR = "PR"
 DEFAULT_LATITUDE = 56.1566 # Default coords (e.g., Aarhus center) if geocoding fails
 DEFAULT_LONGITUDE = 10.2039
-
-# --- Geocoding Setup (with Caching) ---
-# Cache the geocoder instance and the geocode function results
-@st.cache_resource
-def get_geocoder():
-    """Initializes and returns a Nominatim geocoder with rate limiting."""
-    geolocator = Nominatim(user_agent="streamlit_event_app_v2") # Updated user agent slightly
-    # Add rate limiting to avoid overwhelming the geocoding service
-    return RateLimiter(geolocator.geocode, min_delay_seconds=1)
-
-@st.cache_data(ttl=60*60*24) # Cache results for 24 hours
-def fetch_coordinates(address):
-    """Fetches latitude and longitude for a given address string."""
-    if not isinstance(address, str) or not address.strip():
-        logging.warning("Geocoding attempt with invalid address (None or empty).")
-        return None
-    logging.info(f"Geocoding address: {address}")
-    geocode = get_geocoder()
-    try:
-        location = geocode(address, timeout=10) # Increased timeout
-        if location:
-            logging.info(f"Found coordinates: ({location.latitude}, {location.longitude})")
-            return location.latitude, location.longitude
-        else:
-            logging.warning(f"Address not found or geocoding failed for: {address}")
-            return None
-    except GeocoderTimedOut:
-        logging.error(f"Geocoder timed out for address: {address}")
-        st.error(f"Geocoding timed out for address: {address}. Please try again later.")
-        return None
-    except GeocoderServiceError as e:
-        logging.error(f"Geocoder service error for address {address}: {e}")
-        st.error(f"Geocoding service error: {e}")
-        return None
-    except Exception as e:
-        logging.error(f"An unexpected error occurred during geocoding for {address}: {e}")
-        st.error(f"An unexpected error occurred during geocoding.")
-        return None
 
 @st.cache_data # Cache the loaded data
 def load_data(file_path):
@@ -168,11 +128,11 @@ def display_event_card(event, index):
         # Display Basic Info and Details Button
         st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
         st.write(f"**📍 Location:** {event.get('Lokation', 'N/A')}")
-        st.write(f"**Organiser:** {event.get('Arrangør', 'N/A')}")
+        st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
         st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
 
         # Use the event's index in the dataframe as a unique key for the button
-        if st.button("View Details", key=f"details_{index}"):
+        if st.button("View Details", key=f"details_{index}", type="primary"):
             st.session_state.selected_event_index = index
             st.rerun() # Rerun the script to switch to detail view
 
@@ -180,7 +140,7 @@ def display_event_card(event, index):
          # Display Happenings/Schedule
          st.write("**Schedule / Happenings:**")
          happenings = event.get('Tidpunkter og Titel på Happenings')
-         print(f"Happenings: {happenings}") # Debugging line to check the value
+         
          if pd.notna(happenings) and isinstance(happenings, str) and happenings.strip():
              # Split by newline and display as a list
              lines = happenings.strip().split('\n')
@@ -196,7 +156,7 @@ def display_event_details(event):
     """Displays the full details page for a selected event."""
 
     # --- Back Button ---
-    if st.button("⬅️ Back to Overview"):
+    if st.button("⬅️ Back to Overview", type="primary"):
         st.session_state.selected_event_index = None
         st.rerun() # Rerun to go back to overview
 
@@ -292,7 +252,7 @@ def display_event_details(event):
                      tooltip="Approximate Area"
                 ).add_to(m)
                 st.write("Showing map centered on Aarhus.")
-                st_folium(m, height=350, width=700)
+                st_folium(m, height=350, width=350)
         else:
             # Case where no address was provided at all
             st.info("No location address provided for this event. Cannot display map.")
@@ -334,14 +294,39 @@ def main():
         if st.sidebar.button("⬅️ Back to Event Overview"):
              st.session_state.selected_event_index = None
              st.rerun()
+
     st.sidebar.markdown("---")
     # Optional: Add filters or other controls here later
+    if not st.session_state.get('show_full_map', False):
+        if st.sidebar.button("Show Full Map"):
+            st.session_state.show_full_map = True
+            st.session_state.selected_event_index = None
+            st.rerun()
+    else:
+        st.sidebar.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
+            
 
+    # --- Full Map Page ---
+    if st.session_state.get('show_full_map', True):
+        if st.button("<- Go Back to Event Overview", type="primary"):
+            st.session_state.show_full_map = False
+            st.session_state.selected_event_index = None
+            st.rerun()
+
+        st.title("Full Event Map")
+        st.markdown("All events are displayed on the map below.")
+        st.markdown("---")
+        
+        from map import create_full_map
+
+        # Create and display the full map with all events
+        create_full_map(df)
+        st.stop()
 
     # --- Page Rendering ---
     if st.session_state.selected_event_index is None:
         # --- Event Overview Page ---
-        st.title("Program Overview")
+        st.title("Aarhus Pride 2025 - Program Overview")
         st.markdown("Browse the upcoming events below.")
         st.markdown("---")
 
@@ -366,7 +351,7 @@ def main():
             logging.warning(f"Invalid selected_event_index encountered: {st.session_state.selected_event_index}")
             st.session_state.selected_event_index = None
             # Give user a moment to see the error before rerunning
-            st.button("Return to Overview", on_click=lambda: st.rerun())
+            st.button("Return to Overview", on_click=lambda: st.rerun(), type="primary")
 
 
 # --- Run the App ---

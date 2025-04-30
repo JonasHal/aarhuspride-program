@@ -140,7 +140,7 @@ def display_event_card(event, index):
          # Display Happenings/Schedule
          st.write("**Schedule / Happenings:**")
          happenings = event.get('Tidpunkter og Titel på Happenings')
-         
+
          if pd.notna(happenings) and isinstance(happenings, str) and happenings.strip():
              # Split by newline and display as a list
              lines = happenings.strip().split('\n')
@@ -282,6 +282,9 @@ def main():
     # --- Initialize Session State ---
     if 'selected_event_index' not in st.session_state:
         st.session_state.selected_event_index = None
+
+    if "show_full_map" not in st.session_state:
+        st.session_state.show_full_map = False
 
     # --- Sidebar ---
     st.sidebar.title("🗓️ Event Program")

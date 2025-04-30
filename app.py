@@ -56,19 +56,19 @@ def load_data(file_path):
 
         # Convert 'Dato' to datetime objects, handle potential errors
         try:
-            df['Dato_dt'] = pd.to_datetime(df['Dato'], dayfirst=True, errors='coerce')
+            df['Dato_dt'] = pd.to_datetime(df['Dato'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
         except Exception as e:
             st.warning(f"Could not parse all dates in 'Dato' column: {e}. Rows with invalid dates might be excluded or handled improperly.")
             df['Dato_dt'] = pd.NaT # Set to NaT if parsing fails globally
 
         # Optional: Filter out past events (uncomment if needed)
-        # today = pd.to_datetime(datetime.today().date())
-        # df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        # df = df[df['Dato_dt'] >= today]
+        today = pd.to_datetime(datetime.today().date())
+        df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
+        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
 
         # Sort by date (handle NaT dates - place them last or first as needed)
         df = df.sort_values(by='Dato_dt', ascending=True, na_position='last').reset_index(drop=True)
-
+        print(df)
         return df
 
     except FileNotFoundError:

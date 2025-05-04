@@ -106,7 +106,7 @@ def find_image(organizer_name, image_dir=IMAGE_DIR):
 # --- UI Functions ---
 def display_event_card(event, index):
     """Displays a summary card for an event in the overview."""
-    st.subheader(event.get('Titel på dit arrangement', 'No Title'))
+    st.subheader(event.get('Titel på dit arrangement', 'No Title'), anchor=False)
 
     # Use three columns: Image, Basic Info, Happenings
     col1, _, col2, col3 = st.columns([1, 0.2, 1, 1])
@@ -168,7 +168,7 @@ def display_event_details(event):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Event Information")
+        st.subheader("Event Information", anchor=False)
         st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
         st.write(f"**📍 Location:** {event.get('Lokation', 'N/A')}")
         st.write(f"**💰 Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
@@ -191,12 +191,12 @@ def display_event_details(event):
         # --- End Code of Conduct ---
 
 
-        st.subheader("Description")
+        st.subheader("Description", anchor=False)
         description = event.get('Kort beskrivelse af arrangementet', 'No description provided.')
         st.markdown(description if pd.notna(description) else 'No description provided.')
 
 
-        st.subheader("Happenings / Schedule")
+        st.subheader("Happenings / Schedule", anchor=False)
         happenings = event.get('Tidpunkter og Titel på Happenings')
         if pd.notna(happenings) and isinstance(happenings, str) and happenings.strip():
             # Split by newline and display as a list
@@ -211,7 +211,7 @@ def display_event_details(event):
 
     with col2:
         # --- PR Image ---
-        st.subheader("PR Image")
+        st.subheader("PR Image", anchor=False)
         image_path = find_image(event.get('Arrangør', ''))
         if image_path:
             try:
@@ -223,7 +223,7 @@ def display_event_details(event):
             st.caption("No PR image found.")
 
         # --- Map ---
-        st.subheader("Location Map")
+        st.subheader("Location Map", anchor=False)
         address = event.get('Lokation')
         coordinates = None # Initialize coordinates
         if pd.notna(address) and isinstance(address, str):
@@ -288,6 +288,13 @@ def main():
 
     # --- Sidebar ---
     st.sidebar.title("🗓️ Event Program")
+
+    # Description of the app with details
+    st.sidebar.markdown("This app displays the event program for Aarhus Pride.")
+    st.sidebar.markdown("You can view the event details, including a Google Maps Link and schedule.")
+    st.sidebar.markdown("Use the buttons to navigate between the event overview and details.")
+    st.sidebar.markdown("You can also view all events on the overview map.")
+
     st.sidebar.markdown("---")
     if st.session_state.selected_event_index is None:
         st.sidebar.info("Click **'View Details'** on an event card to see more information, including a map and schedule.")
@@ -298,17 +305,6 @@ def main():
              st.session_state.selected_event_index = None
              st.rerun()
 
-    st.sidebar.markdown("---")
-    # Optional: Add filters or other controls here later
-    if not st.session_state.get('show_full_map', False):
-        if st.sidebar.button("Show Full Map"):
-            st.session_state.show_full_map = True
-            st.session_state.selected_event_index = None
-            st.rerun()
-    else:
-        st.sidebar.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
-            
-
     # --- Full Map Page ---
     if st.session_state.get('show_full_map', True):
         if st.button("<- Go Back to Event Overview", type="primary"):
@@ -316,9 +312,8 @@ def main():
             st.session_state.selected_event_index = None
             st.rerun()
 
-        st.title("Full Event Map")
-        st.markdown("All events are displayed on the map below.")
-        st.markdown("---")
+        st.title("🏳️‍🌈 Full Event Map 🏳️‍🌈")
+        st.markdown("All Events are displayed on the map below.")
         
         from map import create_full_map
 
@@ -329,19 +324,46 @@ def main():
     # --- Page Rendering ---
     if st.session_state.selected_event_index is None:
         # --- Event Overview Page ---
-        st.title("Aarhus Pride 2025 - Program Overview")
-        st.markdown("Browse the upcoming events below.")
+        st.title("🌈 Aarhus Pride Events 🌈", anchor=False)
+        st.sidebar.markdown("---")
+        # Optional: Add filters or other controls here later
+        if not st.session_state.get('show_full_map', False):
+            if st.button("Click Me for Overview Map", type="primary"):
+                st.session_state.show_full_map = True
+                st.session_state.selected_event_index = None
+                st.rerun()
+        else:
+            st.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
+            
+        st.markdown("Or Browse the upcoming events below.")
         st.markdown("---")
 
         if df.empty:
             # This case should be less likely now with earlier checks, but good to keep
             st.info("No upcoming events found in the data.")
         else:
-            # Display events as cards
-            for index, event in df.iterrows():
-                 # Pass the event data (as a Series) and its index
-                 display_event_card(event, index)
-                 st.markdown("---") # Separator between cards
+            # seperate the events into two dfs one for warmup (before 31st of may) and one for ones after
+            warmup_df = df[df['Dato_dt'] < pd.to_datetime("2025-05-31")]
+            main_events_df = df[df['Dato_dt'] >= pd.to_datetime("2025-05-31")]
+            print(warmup_df)
+            if warmup_df.empty:
+                None # No warmup events to display, but we can still show the main events
+            else:
+                with st.expander("Warmup", expanded=False):
+                    st.caption("These events are part of the warmup to Aarhus Pride.")
+                    st.markdown("---")
+                    # Display events as cards
+                    for index, event in warmup_df.iterrows():
+                        # Pass the event data (as a Series) and its index
+                        display_event_card(event, index)
+                        st.markdown("---")
+
+            with st.expander("Events and Happenings", expanded=True):
+                # Display events as cards
+                for index, event in main_events_df.iterrows():
+                    # Pass the event data (as a Series) and its index
+                    display_event_card(event, index)
+                    st.markdown("---") # Separator between cards
 
     else:
         # --- Event Detail Page ---

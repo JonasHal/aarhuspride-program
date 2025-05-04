@@ -355,7 +355,7 @@ def main():
             # seperate the events into two dfs one for warmup (before 31st of may) and one for ones after
             warmup_df = df[df['Dato_dt'] < pd.to_datetime("2025-05-31")]
             main_events_df = df[df['Dato_dt'] >= pd.to_datetime("2025-05-31")]
-            print(warmup_df)
+
             if warmup_df.empty:
                 hey = None # No warmup events to display, but we can still show the main events
             else:

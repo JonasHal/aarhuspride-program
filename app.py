@@ -15,7 +15,7 @@ from functions import fetch_coordinates # Import geocoding function from functio
 st.set_page_config(layout="wide", page_title="Event Program")
 logging.basicConfig(level=logging.INFO) # Configure logging
 
-DATA_FILE = "data.csv"
+DATA_FILE = "events.csv"
 IMAGE_DIR = "PR"
 DEFAULT_LATITUDE = 56.1566 # Default coords (e.g., Aarhus center) if geocoding fails
 DEFAULT_LONGITUDE = 10.2039
@@ -65,10 +65,10 @@ def load_data(file_path):
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
         df = df[df['Dato_dt'] >= today] # Keep events from today onwards
-
+        
         # Sort by date (handle NaT dates - place them last or first as needed)
         df = df.sort_values(by='Dato_dt', ascending=True, na_position='last').reset_index(drop=True)
-        print(df)
+
         return df
 
     except FileNotFoundError:
@@ -126,8 +126,13 @@ def display_event_card(event, index):
 
     with col2:
         # Display Basic Info and Details Button
-        st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
-        st.write(f"**📍 Location:** {event.get('Lokation', 'N/A')}")
+        st.write(f"**📅 Date and Time:** {event.get('Dato', 'N/A')}")
+        lokation = event.get('Lokation', 'N/A')
+        if pd.notna(lokation) and isinstance(lokation, str) and lokation.strip():
+            st.write(f"**📍 Location:** {lokation}")
+            st.link_button("View on Google Maps", f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(event.get('Lokation', ''))}")
+        else:
+            st.write("No location provided.")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
         st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
 
@@ -170,7 +175,12 @@ def display_event_details(event):
     with col1:
         st.subheader("Event Information", anchor=False)
         st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
-        st.write(f"**📍 Location:** {event.get('Lokation', 'N/A')}")
+        lokation = event.get('Lokation', 'N/A')
+        if pd.notna(lokation) and isinstance(lokation, str) and lokation.strip():
+            st.write(f"**📍 Location:** {lokation}")
+            st.link_button("View on Google Maps", f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(event.get('Lokation', ''))}")
+        else:
+            st.write("No location provided.")
         st.write(f"**💰 Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
         st.write(f"**👥 Target Audience:** {event.get('Målgruppe', 'N/A')}")
         st.write(f"**✨ Vibe:** {event.get('Stemning', 'N/A')}")
@@ -345,9 +355,9 @@ def main():
             # seperate the events into two dfs one for warmup (before 31st of may) and one for ones after
             warmup_df = df[df['Dato_dt'] < pd.to_datetime("2025-05-31")]
             main_events_df = df[df['Dato_dt'] >= pd.to_datetime("2025-05-31")]
-            print(warmup_df)
+
             if warmup_df.empty:
-                None # No warmup events to display, but we can still show the main events
+                hey = None # No warmup events to display, but we can still show the main events
             else:
                 with st.expander("Warmup", expanded=False):
                     st.caption("These events are part of the warmup to Aarhus Pride.")

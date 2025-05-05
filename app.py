@@ -64,7 +64,7 @@ def load_data(file_path):
         # Optional: Filter out past events (uncomment if needed)
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today + pd.Timedelta(days=26)] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
         
         # Sort by date (handle NaT dates - place them last or first as needed)
         df = df.sort_values(by='Dato_dt', ascending=True, na_position='last').reset_index(drop=True)

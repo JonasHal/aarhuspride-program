@@ -124,6 +124,11 @@ def display_event_card(event, index):
         else:
             st.caption(f"No PR image found for '{event.get('Arrangør', '')}'")
 
+        # Use the event's index in the dataframe as a unique key for the button
+        if st.button("View Details", key=f"details_{index}", type="primary"):
+            st.session_state.selected_event_index = index
+            st.rerun() # Rerun the script to switch to detail view
+
     with col2:
         # Display Basic Info and Details Button
         st.write(f"**📅 Date and Time:** {event.get('Dato', 'N/A')}")
@@ -133,13 +138,9 @@ def display_event_card(event, index):
             st.link_button("View on Google Maps", f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(event.get('Lokation', ''))}")
         else:
             st.write("No location provided.")
+        st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
         st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
-
-        # Use the event's index in the dataframe as a unique key for the button
-        if st.button("View Details", key=f"details_{index}", type="primary"):
-            st.session_state.selected_event_index = index
-            st.rerun() # Rerun the script to switch to detail view
 
     with col3:
          # Display Happenings/Schedule
@@ -181,6 +182,7 @@ def display_event_details(event):
             st.link_button("View on Google Maps", f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(event.get('Lokation', ''))}")
         else:
             st.write("No location provided.")
+        st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**💰 Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
         st.write(f"**👥 Target Audience:** {event.get('Målgruppe', 'N/A')}")
         st.write(f"**✨ Vibe:** {event.get('Stemning', 'N/A')}")
@@ -247,6 +249,7 @@ def display_event_details(event):
                 folium.Marker(
                     location=map_center,
                     popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
+                    icon=folium.Icon(color="blue", icon="info-sign"),
                     tooltip=event.get('Titel på dit arrangement', 'Click for details')
                 ).add_to(m)
                 # Display map using st_folium
@@ -259,6 +262,7 @@ def display_event_details(event):
                 folium.Marker(
                      location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
                      popup="Default location shown (Aarhus). Event address could not be geocoded.",
+                     icon=folium.Icon(color="green", icon="info-sign"),
                      tooltip="Approximate Area"
                 ).add_to(m)
                 st.write("Showing map centered on Aarhus.")
@@ -296,6 +300,9 @@ def main():
     if "show_full_map" not in st.session_state:
         st.session_state.show_full_map = False
 
+    if "last_clicked" not in st.session_state:
+        st.session_state.last_clicked = None
+
     # --- Sidebar ---
     st.sidebar.title("🗓️ Event Program")
 
@@ -304,6 +311,16 @@ def main():
     st.sidebar.markdown("You can view the event details, including a Google Maps Link and schedule.")
     st.sidebar.markdown("Use the buttons to navigate between the event overview and details.")
     st.sidebar.markdown("You can also view all events on the overview map.")
+
+    if st.sidebar.button("Homepage"):
+        st.session_state.selected_event_index = None
+        st.session_state.show_full_map = False
+        st.rerun()
+
+    if st.sidebar.button("Overview Map"):
+        st.session_state.show_full_map = True
+        st.session_state.selected_event_index = None
+        st.rerun()
 
     st.sidebar.markdown("---")
     if st.session_state.selected_event_index is None:
@@ -324,6 +341,12 @@ def main():
 
         st.title("🏳️‍🌈 Full Event Map 🏳️‍🌈")
         st.markdown("All Events are displayed on the map below.")
+        
+        if st.session_state.last_clicked:
+            #google maps the address of the selected event
+            address = st.session_state.last_clicked.split("\n")[1]
+            Maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(address)}"
+            st.link_button(f"Search '{address}' on Google Maps", Maps_url)
         
         from map import create_full_map
 

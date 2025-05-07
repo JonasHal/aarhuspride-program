@@ -106,6 +106,7 @@ def display_event_card(event, index):
         st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
         st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+        st.caption(f"Sponsored by {event.get('Sponsorer', 'N/A')}")
 
     with col3:
          # Display Happenings/Schedule
@@ -202,39 +203,42 @@ def display_event_details(event):
         # --- Map ---
         st.subheader("Location Map", anchor=False)
         address = event.get('Lokation')
-        coordinates = None # Initialize coordinates
-        if pd.notna(address) and isinstance(address, str):
-            coordinates = fetch_coordinates(address) # Fetch coordinates
-            if coordinates:
-                lat, lon = coordinates
-                map_center = [lat, lon]
+        lat = event.get('Latitude')
+        lon = event.get('Longitude')
+        venue = event.get('Venue')
+        start = event.get('Dato', 'N/A')
+        if pd.notna(lat) and pd.notna(lon):
+            # If lat/lon are already present, use them directly
+            map_center = [lat, lon]
+            # Use address in popup for more context
+            popup_text = f"""<b>{event.get('Titel på dit arrangement', 'Event')}</b><ul>
+                    <li>{address}</li>
+                    <li>{venue}</li>
+                    <li>{start}</li>
+                </ul>"""
                 # Use address in popup for more context
-                popup_text = f"<b>{event.get('Titel på dit arrangement', 'Event')}</b><br>{address}"
-                m = folium.Map(location=map_center, zoom_start=15)
-                folium.Marker(
-                    location=map_center,
-                    popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
-                    icon=folium.Icon(color="blue", icon="info-sign"),
-                    tooltip=event.get('Titel på dit arrangement', 'Click for details')
-                ).add_to(m)
-                # Display map using st_folium
-                st_folium(m, height=350, width=700)
-            else:
-                # Case where geocoding failed for a provided address
-                st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
-                # Display a default map centered broadly (e.g., on Aarhus)
-                m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12, tiles="CartoDB positron")
-                folium.Marker(
-                     location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
-                     popup="Default location shown (Aarhus). Event address could not be geocoded.",
-                     icon=folium.Icon(color="green", icon="info-sign"),
-                     tooltip="Approximate Area"
-                ).add_to(m)
-                st.write("Showing map centered on Aarhus.")
-                st_folium(m, height=350, width=350)
+            m = folium.Map(location=map_center, zoom_start=15)
+            folium.Marker(
+                location=map_center,
+                popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
+                icon=folium.Icon(color="blue", icon="info-sign"),
+                tooltip=event.get('Titel på dit arrangement', 'Click for details')
+            ).add_to(m)
+            # Display map using st_folium
+            st_folium(m, height=350, width=700)
         else:
-            # Case where no address was provided at all
-            st.info("No location address provided for this event. Cannot display map.")
+            # Case where geocoding failed for a provided address
+            st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
+            # Display a default map centered broadly (e.g., on Aarhus)
+            m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12, tiles="CartoDB positron")
+            folium.Marker(
+                    location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
+                    popup="Default location shown (Aarhus). Event address could not be geocoded.",
+                    icon=folium.Icon(color="green", icon="info-sign"),
+                    tooltip="Approximate Area"
+            ).add_to(m)
+            st.write("Showing map centered on Aarhus.")
+            st_folium(m, height=350, width=350)
 
         # --- Google Maps Link Button ---
         if pd.notna(address) and isinstance(address, str):

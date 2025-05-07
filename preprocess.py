@@ -9,18 +9,14 @@ import os
 import sys
 
 import logging
-import streamlit as st
 
 # --- Geocoding Setup (with Caching) ---
-# Cache the geocoder instance and the geocode function results
-@st.cache_resource
 def get_geocoder():
     """Initializes and returns a Nominatim geocoder with rate limiting."""
     geolocator = Nominatim(user_agent="streamlit_event_app_v2") # Updated user agent slightly
     # Add rate limiting to avoid overwhelming the geocoding service
     return RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
-@st.cache_data(ttl=60*60*24) # Cache results for 24 hours
 def fetch_coordinates(address):
     """Fetches latitude and longitude for a given address string."""
     if not isinstance(address, str) or not address.strip():
@@ -105,6 +101,9 @@ def load_data(file_path):
     
 if __name__ == "__main__":
     df = load_data("events.csv") # Load the CSV file
+
+    # drop emails
+    df = df.drop(columns=['Mailadresse', "Kolonne 16"], errors='ignore')
 
     for index, event in df.iterrows():
         address = event.get('Lokation')

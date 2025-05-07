@@ -30,6 +30,8 @@ def create_full_map(df):
 
     for index, event in df.iterrows():
         address = event.get('Lokation')
+        venue = event.get('Venue')
+        start = event.get('Dato', 'N/A')
         coordinates = None # Initialize coordinates
         if pd.notna(address) and isinstance(address, str):
             coordinates = fetch_coordinates(address) # Fetch coordinates
@@ -37,7 +39,12 @@ def create_full_map(df):
                 lat, lon = coordinates
                 map_center = [lat, lon]
                 # Use address in popup for more context
-                popup_text = f"<b>{event.get('Titel på dit arrangement', 'Event')}</b><br>{address}"
+                popup_text = f"""<b>{event.get('Titel på dit arrangement', 'Event')}</b><ul>
+                        <li>{address}</li>
+                        <li>{venue}</li>
+                        <li>{start}</li>
+                    </ul>"""
+
                 folium.Marker(
                     location=map_center,
                     popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
@@ -56,4 +63,9 @@ def create_full_map(df):
                 ).add_to(m)
                 st.write("Showing map centered on Aarhus.")
     
-    st_folium(m, height=700, width=500)
+    st_data = st_folium(m, height=700, width=500, returned_objects=["last_object_clicked_popup"])
+
+    if st_data["last_object_clicked_popup"] != st.session_state.get("last_clicked"):
+        # If a new marker is clicked, update the session state
+        st.session_state["last_clicked"] = st_data["last_object_clicked_popup"]
+        st.rerun()

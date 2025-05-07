@@ -9,65 +9,30 @@ import re
 import logging
 from datetime import datetime
 import urllib.parse # Needed for Google Maps link
-from functions import fetch_coordinates # Import geocoding function from functions.py
+from preprocess import fetch_coordinates # Import geocoding function from functions.py
 
 # --- Configuration and Setup ---
 st.set_page_config(layout="wide", page_title="Event Program")
 logging.basicConfig(level=logging.INFO) # Configure logging
 
-DATA_FILE = "events.csv"
+DATA_FILE = "events_with_coordinates.csv"
 IMAGE_DIR = "PR"
 DEFAULT_LATITUDE = 56.1566 # Default coords (e.g., Aarhus center) if geocoding fails
 DEFAULT_LONGITUDE = 10.2039
 
-@st.cache_data # Cache the loaded data
+@st.cache_resource # Cache the function to avoid reloading data unnecessarily
 def load_data(file_path):
     """Loads event data from a CSV file and performs robust cleaning on column names."""
     try:
-        df = pd.read_csv(file_path)
-
-        # --- Robust Column Name Cleaning ---
-        cleaned_columns = []
-        for col in df.columns:
-            original_col = col # Keep original for logging if needed
-            # 1. Remove bracketed content (handles multi-line content within brackets)
-            col = re.sub(r'\s*\[.*?\]\s*', '', col, flags=re.DOTALL)
-            # 2. Remove specific known suffixes
-            col = col.replace('- Maks en sætning', '')
-            # 3. Replace newline characters with spaces
-            col = col.replace('\n', ' ')
-            # 4. Replace multiple whitespace chars with a single space
-            col = re.sub(r'\s+', ' ', col)
-            # 5. Strip leading/trailing whitespace
-            col = col.strip()
-            cleaned_columns.append(col)
-
-        df.columns = cleaned_columns
-        # --- End Column Cleaning ---
-
-        # Verify essential columns *after* cleaning
-        required_cols = ['Titel på dit arrangement', 'Arrangør', 'Lokation', 'Dato']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            st.error(f"After cleaning column names, the CSV file is missing required columns: {missing_cols}. Please check the source file headers.")
-            # Log the columns found after cleaning for easier debugging
-            logging.error(f"Columns found after cleaning: {df.columns.tolist()}")
-            return pd.DataFrame() # Return empty DataFrame on error
-
-        # Convert 'Dato' to datetime objects, handle potential errors
-        try:
-            df['Dato_dt'] = pd.to_datetime(df['Dato'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
-        except Exception as e:
-            st.warning(f"Could not parse all dates in 'Dato' column: {e}. Rows with invalid dates might be excluded or handled improperly.")
-            df['Dato_dt'] = pd.NaT # Set to NaT if parsing fails globally
+        df = pd.read_csv(file_path, parse_dates=['Dato_dt']) # Parse 'Dato_dt' as datetime during loading
 
         # Optional: Filter out past events (uncomment if needed)
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= today + pd.Timedelta(hours=2)] # Keep events from today onwards
         
-        # Sort by date (handle NaT dates - place them last or first as needed)
-        df = df.sort_values(by='Dato_dt', ascending=True, na_position='last').reset_index(drop=True)
+        # Shuffle the rows randomly
+        df = df.sample(frac=1).reset_index(drop=True)
 
         return df
 

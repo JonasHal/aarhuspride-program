@@ -9,65 +9,30 @@ import re
 import logging
 from datetime import datetime
 import urllib.parse # Needed for Google Maps link
-from functions import fetch_coordinates # Import geocoding function from functions.py
+from preprocess import fetch_coordinates # Import geocoding function from functions.py
 
 # --- Configuration and Setup ---
 st.set_page_config(layout="wide", page_title="Event Program")
 logging.basicConfig(level=logging.INFO) # Configure logging
 
-DATA_FILE = "events.csv"
+DATA_FILE = "events_with_coordinates.csv"
 IMAGE_DIR = "PR"
 DEFAULT_LATITUDE = 56.1566 # Default coords (e.g., Aarhus center) if geocoding fails
 DEFAULT_LONGITUDE = 10.2039
 
-@st.cache_data # Cache the loaded data
+@st.cache_resource # Cache the function to avoid reloading data unnecessarily
 def load_data(file_path):
     """Loads event data from a CSV file and performs robust cleaning on column names."""
     try:
-        df = pd.read_csv(file_path)
-
-        # --- Robust Column Name Cleaning ---
-        cleaned_columns = []
-        for col in df.columns:
-            original_col = col # Keep original for logging if needed
-            # 1. Remove bracketed content (handles multi-line content within brackets)
-            col = re.sub(r'\s*\[.*?\]\s*', '', col, flags=re.DOTALL)
-            # 2. Remove specific known suffixes
-            col = col.replace('- Maks en sætning', '')
-            # 3. Replace newline characters with spaces
-            col = col.replace('\n', ' ')
-            # 4. Replace multiple whitespace chars with a single space
-            col = re.sub(r'\s+', ' ', col)
-            # 5. Strip leading/trailing whitespace
-            col = col.strip()
-            cleaned_columns.append(col)
-
-        df.columns = cleaned_columns
-        # --- End Column Cleaning ---
-
-        # Verify essential columns *after* cleaning
-        required_cols = ['Titel på dit arrangement', 'Arrangør', 'Lokation', 'Dato']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            st.error(f"After cleaning column names, the CSV file is missing required columns: {missing_cols}. Please check the source file headers.")
-            # Log the columns found after cleaning for easier debugging
-            logging.error(f"Columns found after cleaning: {df.columns.tolist()}")
-            return pd.DataFrame() # Return empty DataFrame on error
-
-        # Convert 'Dato' to datetime objects, handle potential errors
-        try:
-            df['Dato_dt'] = pd.to_datetime(df['Dato'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
-        except Exception as e:
-            st.warning(f"Could not parse all dates in 'Dato' column: {e}. Rows with invalid dates might be excluded or handled improperly.")
-            df['Dato_dt'] = pd.NaT # Set to NaT if parsing fails globally
+        df = pd.read_csv(file_path, parse_dates=['Dato_dt']) # Parse 'Dato_dt' as datetime during loading
 
         # Optional: Filter out past events (uncomment if needed)
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= today + pd.Timedelta(hours=2)] # Keep events from today onwards
         
-        # Sort by date (handle NaT dates - place them last or first as needed)
-        df = df.sort_values(by='Dato_dt', ascending=True, na_position='last').reset_index(drop=True)
+        # Shuffle the rows randomly
+        df = df.sample(frac=1).reset_index(drop=True)
 
         return df
 
@@ -141,6 +106,7 @@ def display_event_card(event, index):
         st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
         st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+        st.caption(f"Sponsored by {event.get('Sponsorer', 'N/A')}")
 
     with col3:
          # Display Happenings/Schedule
@@ -237,39 +203,42 @@ def display_event_details(event):
         # --- Map ---
         st.subheader("Location Map", anchor=False)
         address = event.get('Lokation')
-        coordinates = None # Initialize coordinates
-        if pd.notna(address) and isinstance(address, str):
-            coordinates = fetch_coordinates(address) # Fetch coordinates
-            if coordinates:
-                lat, lon = coordinates
-                map_center = [lat, lon]
+        lat = event.get('Latitude')
+        lon = event.get('Longitude')
+        venue = event.get('Venue')
+        start = event.get('Dato', 'N/A')
+        if pd.notna(lat) and pd.notna(lon):
+            # If lat/lon are already present, use them directly
+            map_center = [lat, lon]
+            # Use address in popup for more context
+            popup_text = f"""<b>{event.get('Titel på dit arrangement', 'Event')}</b><ul>
+                    <li>{address}</li>
+                    <li>{venue}</li>
+                    <li>{start}</li>
+                </ul>"""
                 # Use address in popup for more context
-                popup_text = f"<b>{event.get('Titel på dit arrangement', 'Event')}</b><br>{address}"
-                m = folium.Map(location=map_center, zoom_start=15)
-                folium.Marker(
-                    location=map_center,
-                    popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
-                    icon=folium.Icon(color="blue", icon="info-sign"),
-                    tooltip=event.get('Titel på dit arrangement', 'Click for details')
-                ).add_to(m)
-                # Display map using st_folium
-                st_folium(m, height=350, width=700)
-            else:
-                # Case where geocoding failed for a provided address
-                st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
-                # Display a default map centered broadly (e.g., on Aarhus)
-                m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12, tiles="CartoDB positron")
-                folium.Marker(
-                     location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
-                     popup="Default location shown (Aarhus). Event address could not be geocoded.",
-                     icon=folium.Icon(color="green", icon="info-sign"),
-                     tooltip="Approximate Area"
-                ).add_to(m)
-                st.write("Showing map centered on Aarhus.")
-                st_folium(m, height=350, width=350)
+            m = folium.Map(location=map_center, zoom_start=15)
+            folium.Marker(
+                location=map_center,
+                popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
+                icon=folium.Icon(color="blue", icon="info-sign"),
+                tooltip=event.get('Titel på dit arrangement', 'Click for details')
+            ).add_to(m)
+            # Display map using st_folium
+            st_folium(m, height=350, width=700)
         else:
-            # Case where no address was provided at all
-            st.info("No location address provided for this event. Cannot display map.")
+            # Case where geocoding failed for a provided address
+            st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
+            # Display a default map centered broadly (e.g., on Aarhus)
+            m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12, tiles="CartoDB positron")
+            folium.Marker(
+                    location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
+                    popup="Default location shown (Aarhus). Event address could not be geocoded.",
+                    icon=folium.Icon(color="green", icon="info-sign"),
+                    tooltip="Approximate Area"
+            ).add_to(m)
+            st.write("Showing map centered on Aarhus.")
+            st_folium(m, height=350, width=350)
 
         # --- Google Maps Link Button ---
         if pd.notna(address) and isinstance(address, str):

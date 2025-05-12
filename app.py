@@ -106,6 +106,7 @@ def display_event_card(event, index):
 
         st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
+        st.write(f"**👥 Target Audience:** {event.get('Målgruppe', 'N/A')}")
         
         billetlink = event.get('Hvis der er Billetsalg', 'N/A')
         if pd.notna(billetlink) and isinstance(billetlink, str) and billetlink.strip():

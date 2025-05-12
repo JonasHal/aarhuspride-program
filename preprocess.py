@@ -58,6 +58,8 @@ def load_data(file_path):
             col = re.sub(r'\s*\[.*?\]\s*', '', col, flags=re.DOTALL)
             # 2. Remove specific known suffixes
             col = col.replace('- Maks en sætning', '')
+            col = col.replace(', skriv linket her', '')
+            
             # 3. Replace newline characters with spaces
             col = col.replace('\n', ' ')
             # 4. Replace multiple whitespace chars with a single space
@@ -73,8 +75,6 @@ def load_data(file_path):
         required_cols = ['Titel på dit arrangement', 'Arrangør', 'Lokation', 'Dato']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
-            st.error(f"After cleaning column names, the CSV file is missing required columns: {missing_cols}. Please check the source file headers.")
-            # Log the columns found after cleaning for easier debugging
             logging.error(f"Columns found after cleaning: {df.columns.tolist()}")
             return pd.DataFrame() # Return empty DataFrame on error
 
@@ -82,19 +82,15 @@ def load_data(file_path):
         try:
             df['Dato_dt'] = pd.to_datetime(df['Dato'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
         except Exception as e:
-            st.warning(f"Could not parse all dates in 'Dato' column: {e}. Rows with invalid dates might be excluded or handled improperly.")
             df['Dato_dt'] = pd.NaT # Set to NaT if parsing fails globally
 
         return df
 
     except FileNotFoundError:
-        st.error(f"Error: Data file not found at '{file_path}'. Please create it.")
         return pd.DataFrame()
     except pd.errors.EmptyDataError:
-        st.error(f"Error: Data file '{file_path}' is empty.")
         return pd.DataFrame()
     except Exception as e:
-        st.error(f"An unexpected error occurred loading the data: {e}")
         logging.exception("Error during data loading:") # Log the full traceback
     
     return pd.DataFrame()

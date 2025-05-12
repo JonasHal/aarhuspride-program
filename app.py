@@ -29,7 +29,7 @@ def load_data(file_path):
         # Optional: Filter out past events (uncomment if needed)
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today + pd.Timedelta(hours=2)] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= today + pd.Timedelta(hours=10)] # Keep events from today onwards
         
         # Shuffle the rows randomly
         df = df.sample(frac=1).reset_index(drop=True)

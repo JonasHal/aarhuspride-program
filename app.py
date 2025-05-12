@@ -103,9 +103,17 @@ def display_event_card(event, index):
             st.link_button("View on Google Maps", f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(event.get('Lokation', ''))}")
         else:
             st.write("No location provided.")
+
         st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
         st.write(f"**🏳️‍🌈 Organiser:** {event.get('Arrangør', 'N/A')}")
-        st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+        
+        billetlink = event.get('Hvis der er Billetsalg', 'N/A')
+        if pd.notna(billetlink) and isinstance(billetlink, str) and billetlink.strip():
+            st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+            st.link_button("🎟️ Get Tickets", billetlink)
+        else:
+            st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+        
         st.caption(f"Sponsored by {event.get('Sponsorer', 'N/A')}")
 
     with col3:
@@ -142,6 +150,8 @@ def display_event_details(event):
     with col1:
         st.subheader("Event Information", anchor=False)
         st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
+
+        #Lokation
         lokation = event.get('Lokation', 'N/A')
         if pd.notna(lokation) and isinstance(lokation, str) and lokation.strip():
             st.write(f"**📍 Location:** {lokation}")
@@ -149,7 +159,15 @@ def display_event_details(event):
         else:
             st.write("No location provided.")
         st.write(f"**🏛️ Venue:** {event.get('Venue', 'N/A')}")
-        st.write(f"**💰 Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+
+        #Billetsalg
+        billetlink = event.get('Hvis der er Billetsalg', 'N/A')
+        if pd.notna(billetlink) and isinstance(billetlink, str) and billetlink.strip():
+            st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+            st.link_button("🎟️ Get Tickets", billetlink)
+        else:
+            st.write(f"**Entry:** {event.get('Er der fri entré til dit event, eller skal deltagerne betale et beløb i døren?', 'N/A')}")
+        
         st.write(f"**👥 Target Audience:** {event.get('Målgruppe', 'N/A')}")
         st.write(f"**✨ Vibe:** {event.get('Stemning', 'N/A')}")
         st.write(f"**♿ Accessibility:** {event.get('Tilgængelighed', 'N/A')}")

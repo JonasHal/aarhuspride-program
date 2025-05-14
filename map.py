@@ -3,8 +3,6 @@ import folium
 from streamlit_folium import st_folium
 import pandas as pd
 
-from preprocess import fetch_coordinates
-
 DEFAULT_LATITUDE = 56.1566 # Default coords (e.g., Aarhus center) if geocoding fails
 DEFAULT_LONGITUDE = 10.2039
 
@@ -13,12 +11,16 @@ COLOR_SCHEME = {
     1: "green",
     2: "red",
     3: "purple",
-    4: "yellow"
+    4: "beige",
 }
 
 def create_full_map(df):
     # Display a default map centered broadly (e.g., on Aarhus)
-    m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=14, control_scale=True)
+    m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], 
+                   zoom_start=14, 
+                   control_scale=False,  # Removes the scale bar
+                   attribution_control=False  # Removes the attribution text
+    )
 
     # add a marker for the default location (Rådhusparken)
     folium.Marker(
@@ -66,7 +68,7 @@ def create_full_map(df):
             ).add_to(m)
             st.write("Showing map centered on Aarhus.")
     
-    st_data = st_folium(m, height=700, width=500, returned_objects=["last_object_clicked_popup"])
+    st_data = st_folium(m, height=300, width=400, returned_objects=["last_object_clicked_popup"])
 
     if st_data["last_object_clicked_popup"] != st.session_state.get("last_clicked"):
         # If a new marker is clicked, update the session state

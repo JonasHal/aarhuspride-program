@@ -335,7 +335,11 @@ def main():
             address = st.session_state.last_clicked.split("\n")[1]
             Maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(address)}"
             st.link_button(f"Search '{address}' on Google Maps", Maps_url)
-        
+        else:
+            main_address = "Rådhuspladsen 1, 8000 Aarhus C"
+            Maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(main_address)}"
+            st.link_button(f"Search 'Rådhusparken' on Google Maps", Maps_url)
+            
         from map import create_full_map
 
         # Create and display the full map with all events

@@ -58,7 +58,7 @@ def load_data(file_path):
             col = re.sub(r'\s*\[.*?\]\s*', '', col, flags=re.DOTALL)
             # 2. Remove specific known suffixes
             col = col.replace('- Maks en sætning', '')
-            col = col.replace(' skriv linket her', '')
+            col = col.replace(' skriv linket her:', '')
             
             # 3. Replace newline characters with spaces
             col = col.replace('\n', ' ')

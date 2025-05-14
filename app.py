@@ -182,10 +182,10 @@ def display_event_details(event):
                  st.link_button("📜 View Code of Conduct", coc_link)
              else:
                  # Display the text if it's not a standard link
-                 st.write(f"**📜 Code of Conduct:** Provided (non-standard link: {coc_link})")
-        # else: # Optional: uncomment to explicitly state no CoC link
-        #     st.write("**📜 Code of Conduct:** Not provided.")
-        # --- End Code of Conduct ---
+                 st.write(f"**📜 Code of Conduct:** {coc_link}")
+
+        else: # Optional: uncomment to explicitly state no CoC link
+            st.write("**📜 Code of Conduct:** Not provided")
 
 
         st.subheader("Description", anchor=False)

@@ -58,7 +58,7 @@ def load_data(file_path):
             col = re.sub(r'\s*\[.*?\]\s*', '', col, flags=re.DOTALL)
             # 2. Remove specific known suffixes
             col = col.replace('- Maks en sætning', '')
-            col = col.replace(' skriv linket her:', '')
+            col = col.replace(', skriv linket her:', '')
             
             # 3. Replace newline characters with spaces
             col = col.replace('\n', ' ')
@@ -72,15 +72,15 @@ def load_data(file_path):
         # --- End Column Cleaning ---
 
         # Verify essential columns *after* cleaning
-        required_cols = ['Titel på dit arrangement', 'Arrangør', 'Lokation', 'Dato']
+        required_cols = ['Titel på dit arrangement', 'Arrangør', 'Lokation', 'Start Tidspunkt', 'Slut Tidspunkt']
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             logging.error(f"Columns found after cleaning: {df.columns.tolist()}")
             return pd.DataFrame() # Return empty DataFrame on error
 
-        # Convert 'Dato' to datetime objects, handle potential errors
+        # Convert 'Slut Tidspunkt' to datetime objects, handle potential errors
         try:
-            df['Dato_dt'] = pd.to_datetime(df['Dato'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
+            df['Dato_dt'] = pd.to_datetime(df['Slut Tidspunkt'], format='%d/%m/%Y %H.%M.%S', errors='coerce')
         except Exception as e:
             df['Dato_dt'] = pd.NaT # Set to NaT if parsing fails globally
 

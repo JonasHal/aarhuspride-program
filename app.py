@@ -29,7 +29,7 @@ def load_data(file_path):
         # Optional: Filter out past events (uncomment if needed)
         today = pd.to_datetime(datetime.today().date())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today + pd.Timedelta(hours=10)] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
         
         # Shuffle the rows randomly
         df = df.sample(frac=1).reset_index(drop=True)
@@ -96,7 +96,8 @@ def display_event_card(event, index):
 
     with col2:
         # Display Basic Info and Details Button
-        st.write(f"**📅 Date and Time:** {event.get('Dato', 'N/A')}")
+        st.write(f"**📅 Date and Time:** {event.get('Start Tidspunkt', 'N/A')}")
+        st.write(f"**📅 End:** {event.get('Slut Tidspunkt', 'N/A')}")
         lokation = event.get('Lokation', 'N/A')
         if pd.notna(lokation) and isinstance(lokation, str) and lokation.strip():
             st.write(f"**📍 Location:** {lokation}")
@@ -150,7 +151,8 @@ def display_event_details(event):
 
     with col1:
         st.subheader("Event Information", anchor=False)
-        st.write(f"**📅 Date:** {event.get('Dato', 'N/A')}")
+        st.write(f"**📅 Start Time:** {event.get('Start Tidspunkt', 'N/A')}")
+        st.write(f"**📅 End Time:** {event.get('Slut Tidspunkt', 'N/A')}")
 
         #Lokation
         lokation = event.get('Lokation', 'N/A')
@@ -225,7 +227,7 @@ def display_event_details(event):
         lat = event.get('Latitude')
         lon = event.get('Longitude')
         venue = event.get('Venue')
-        start = event.get('Dato', 'N/A')
+        start = event.get('Start Tidspunkt', 'N/A')
         if pd.notna(lat) and pd.notna(lon):
             # If lat/lon are already present, use them directly
             map_center = [lat, lon]
@@ -270,6 +272,9 @@ def display_event_details(event):
 # --- Main App Logic ---
 def main():
     """Main function to run the Streamlit application."""
+
+    # Logo
+    st.logo("pride_logo_tns.png", size="large")
 
     # --- Load Data ---
     df = load_data(DATA_FILE)

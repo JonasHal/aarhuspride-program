@@ -18,7 +18,7 @@ COLOR_SCHEME = {
 def create_full_map(df):
     # Display a default map centered broadly (e.g., on Aarhus)
     m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], 
-                   zoom_start=14, 
+                   zoom_start=13, 
                    control_scale=False,  # Removes the scale bar
                    attribution_control=False  # Removes the attribution text
     )
@@ -40,7 +40,7 @@ def create_full_map(df):
         lat = event.get('Latitude')
         lon = event.get('Longitude')
         venue = event.get('Venue')
-        start = event.get('Dato', 'N/A')
+        start = event.get('Start Tidspunkt', 'N/A')
         if pd.notna(lat) and pd.notna(lon):
             # If lat/lon are already present, use them directly
             map_center = [lat, lon]

@@ -68,6 +68,185 @@ def find_image(organizer_name, image_dir=IMAGE_DIR):
         logging.error(f"Error accessing image directory '{image_dir}': {e}")
     return None # Return None if no matching image is found or on error
 
+def display_event_image(event):
+    # Display Image
+    image_path = find_image(event.get('Arrangør', ''))
+    if image_path:
+        try:
+            image = Image.open(image_path)
+            st.image(image, use_container_width=True)
+        except Exception as e:
+            st.warning(f"Could not load image: {e}")
+            st.caption("Image Error")
+    else:
+        st.caption(f"No PR image found for '{event.get('Arrangør', '')}'")
+
+
+def display_event_overview(df):
+    """Display events in a responsive grid with proper image and card layout."""
+    import base64
+    import streamlit as st
+    from math import ceil
+    
+    # Initialize session state for selected event if not exists
+    if 'selected_event_index' not in st.session_state:
+        st.session_state.selected_event_index = None
+    
+    # Function to handle button click
+    def set_event_index(idx):
+        st.session_state.selected_event_index = idx
+    
+    # Calculate responsive layout
+    col_width = 200  # Same as minmax in CSS
+    page_width = 1100  # Approximate max width of Streamlit content area
+    max_cols = 4  # Maximum number of columns to show
+    num_cols = min(max_cols, max(1, page_width // col_width))
+    
+    # Enhanced CSS for better styling
+    st.markdown("""
+    <style>
+    /* Overall container adjustments */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
+    }
+    
+    /* Card styling */
+    .event-card {
+        background: rgba(17, 17, 17, 0.7);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+    }
+    
+    .event-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Image container */
+    .event-img-container {
+        width: 100%;
+        height: 180px;
+        position: relative;
+        overflow: hidden;
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .event-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* Title styling */
+    .event-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: white;
+        padding: 1rem;
+        text-align: center;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+    }
+    
+    /* Button styling */
+    .stExpander .stButton button {
+        width: 100%;
+    }
+    
+    /* Remove extra padding within columns */
+    .stColumnContainer {
+        gap: 1.5rem !important;
+    }
+    
+    .stColumn > div {
+        padding: 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Create rows of columns for the grid
+    num_events = len(df)
+    num_rows = ceil(num_events / num_cols)
+    event_rows = []
+    
+    # Create rows of events
+    for i in range(num_rows):
+        start_idx = i * num_cols
+        end_idx = min(start_idx + num_cols, num_events)
+        event_rows.append(list(df.iloc[start_idx:end_idx].iterrows()))
+    
+    # Display rows and columns
+    for row_idx, event_row in enumerate(event_rows):
+        cols = st.columns(num_cols)
+        
+        for col_idx, (original_idx, event) in enumerate(event_row):
+            with cols[col_idx]:
+                # Create card container
+                with st.container():
+                    # Start card div
+                    st.markdown('<div class="event-card">', unsafe_allow_html=True)
+                    
+                    st.caption(f"{event.get("Start Tidspunkt", "N/A")}")
+                    # Image container
+                    image_path = find_image(event.get('Arrangør', ''))
+                    if image_path:
+                        try:
+                            # Read image and convert to base64
+                            with open(image_path, "rb") as img_file:
+                                img_bytes = img_file.read()
+                                img_b64 = base64.b64encode(img_bytes).decode()
+                            st.markdown(
+                                f'<div class="event-img-container"><img src="data:image/png;base64,{img_b64}" class="event-img"/></div>',
+                                unsafe_allow_html=True
+                            )
+                        except Exception:
+                            st.markdown(
+                                '<div class="event-img-container" style="color:#777;">No Image</div>',
+                                unsafe_allow_html=True
+                            )
+                    else:
+                        st.markdown(
+                            '<div class="event-img-container" style="color:#777;">No Image</div>',
+                            unsafe_allow_html=True
+                        )
+                    
+                    # Display title
+                    title = event.get('Titel på dit arrangement', f'Event {row_idx * num_cols + col_idx + 1}')
+                    st.markdown(f'<div class="event-title">{title}</div>', unsafe_allow_html=True)
+                    
+                    # Create a truly unique key using the original index
+                    btn_key = f"btn_idx_{original_idx}"
+                    
+                    # Add button
+                    st.button(
+                        "View Details", 
+                        key=btn_key, 
+                        on_click=set_event_index, 
+                        args=(original_idx,)
+                    )
+                    
+                    # End card div
+                    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # If a button was clicked, the session state will be updated
+    if st.session_state.selected_event_index is not None:
+        # You might want to uncomment this to automatically refresh
+        # st.rerun()
+        pass
+
+
 # --- UI Functions ---
 def display_event_card(event, index):
     """Displays a summary card for an event in the overview."""
@@ -77,18 +256,7 @@ def display_event_card(event, index):
     col1, _, col2, col3 = st.columns([1, 0.2, 1, 1])
 
     with col1:
-        # Display Image
-        image_path = find_image(event.get('Arrangør', ''))
-        if image_path:
-            try:
-                image = Image.open(image_path)
-                st.image(image, use_container_width=True)
-            except Exception as e:
-                st.warning(f"Could not load image: {e}")
-                st.caption("Image Error")
-        else:
-            st.caption(f"No PR image found for '{event.get('Arrangør', '')}'")
-
+        display_event_image(event)
         # Use the event's index in the dataframe as a unique key for the button
         if st.button("View Details", key=f"details_{index}", type="primary"):
             st.session_state.selected_event_index = index
@@ -132,6 +300,7 @@ def display_event_card(event, index):
                  st.caption("N/A")
          else:
              st.caption("No specific schedule provided.")
+
 
 
 def display_event_details(event):
@@ -366,6 +535,9 @@ def main():
             st.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
             
         st.markdown("Or Browse the upcoming events below.")
+
+        st.checkbox("With Details", value=False, key="show_details")
+
         st.markdown("---")
 
         if df.empty:
@@ -380,20 +552,26 @@ def main():
                 hey = None # No warmup events to display, but we can still show the main events
             else:
                 with st.expander("Warmup", expanded=False):
-                    st.caption("These events are part of the warmup to Aarhus Pride.")
-                    st.markdown("---")
-                    # Display events as cards
-                    for index, event in warmup_df.iterrows():
-                        # Pass the event data (as a Series) and its index
-                        display_event_card(event, index)
+                    if not st.session_state.show_details:
+                        display_event_overview(warmup_df)
+                    else:
+                        st.caption("These events are part of the warmup to Aarhus Pride.")
                         st.markdown("---")
+                        # Display events as cards
+                        for index, event in warmup_df.iterrows():
+                            # Pass the event data (as a Series) and its index
+                            display_event_card(event, index)
+                            st.markdown("---")
 
             with st.expander("Events and Happenings", expanded=True):
-                # Display events as cards
-                for index, event in main_events_df.iterrows():
-                    # Pass the event data (as a Series) and its index
-                    display_event_card(event, index)
-                    st.markdown("---") # Separator between cards
+                if not st.session_state.show_details:
+                    display_event_overview(main_events_df)
+                else:
+                    # Display events as cards
+                    for index, event in main_events_df.iterrows():
+                        # Pass the event data (as a Series) and its index
+                        display_event_card(event, index)
+                        st.markdown("---") # Separator between cards
 
     else:
         # --- Event Detail Page ---

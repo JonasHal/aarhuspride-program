@@ -26,9 +26,9 @@ def create_full_map(df):
     # add a marker for the default location (Rådhusparken)
     folium.Marker(
         location=[56.152753, 10.202235],
-        popup=folium.Popup("""<b>Aarhus Pride Lounge (Rådhusparken)</b><ul>
+        popup=folium.Popup("""<ul>
             <li>Rådhusparken</li>
-            <li>Rådhuspladsen 1, 8000 Aarhus C</li>
+            <li><b>Aarhus Pride Lounge</b></li>
             <li>Open: 11:00 - 18:00</li>
             </ul>""", max_width=200),
         icon=folium.Icon(color="orange", icon="info-sign"),
@@ -45,7 +45,7 @@ def create_full_map(df):
             # If lat/lon are already present, use them directly
             map_center = [lat, lon]
             # Use address in popup for more context
-            popup_text = f"""<b>{event.get('Titel på dit arrangement', 'Event')}</b><ul>
+            popup_text = f"""<ul>
                     <li>{address}</li>
                     <li>{venue}</li>
                     <li>{start}</li>
@@ -59,15 +59,7 @@ def create_full_map(df):
             ).add_to(m)
 
         else:
-            # Case where geocoding failed for a provided address
-            st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
-            folium.Marker(
-                    location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
-                    popup="Default location shown (Aarhus). Event address could not be geocoded.",
-                    icon=folium.Icon(color=COLOR_SCHEME.get(index % len(COLOR_SCHEME), "blue"), icon="circle"),
-                    tooltip="Approximate Area"
-            ).add_to(m)
-            st.write("Showing map centered on Aarhus.")
+            continue
 
     st_data = st_folium(m, height=300, width=400, returned_objects=["last_object_clicked_popup"])
 

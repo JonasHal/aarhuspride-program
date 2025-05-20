@@ -107,7 +107,6 @@ def display_event_overview(df):
     <style>
     /* Overall container adjustments */
     .block-container {
-        padding-top: 1rem;
         padding-bottom: 1rem;
         max-width: 100%;
     }
@@ -395,6 +394,8 @@ def display_event_details(event):
         address = event.get('Lokation')
         lat = event.get('Latitude')
         lon = event.get('Longitude')
+        lat_list = event.get('Latitude_List')
+        lon_list = event.get('Longitude_List')
         venue = event.get('Venue')
         start = event.get('Start Tidspunkt', 'N/A')
         if pd.notna(lat) and pd.notna(lon):
@@ -414,13 +415,29 @@ def display_event_details(event):
                 icon=folium.Icon(color="blue", icon="info-sign"),
                 tooltip=event.get('Titel på dit arrangement', 'Click for details')
             ).add_to(m)
-            # Display map using st_folium
-            st_folium(m, height=350, width=700)
+        elif pd.notna(lat_list) and pd.notna(lon_list):
+            # If lat/lon lists are present, use them all
+            import json
+            m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=14)
+            for lat, lon, add, ven in zip(json.loads(lat_list), json.loads(lon_list), address.split("\n"), venue.split(", ")):
+                map_center = [lat, lon]
+                # Use address in popup for more context
+                popup_text = f"""<ul>
+                        <li>{add}</li>
+                        <li>{ven}</li>
+                    </ul>"""
+                folium.Marker(
+                    location=map_center,
+                    popup=folium.Popup(popup_text, max_width=200), # Create a proper Popup object
+                    icon=folium.Icon(color="blue", icon="info-sign"),
+                    tooltip=ven
+                ).add_to(m)
+            
         else:
             # Case where geocoding failed for a provided address
             st.warning(f"Could not find coordinates for '{address}'. Map cannot be displayed accurately.")
             # Display a default map centered broadly (e.g., on Aarhus)
-            m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12, tiles="CartoDB positron")
+            m = folium.Map(location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE], zoom_start=12)
             folium.Marker(
                     location=[DEFAULT_LATITUDE, DEFAULT_LONGITUDE],
                     popup="Default location shown (Aarhus). Event address could not be geocoded.",
@@ -428,7 +445,8 @@ def display_event_details(event):
                     tooltip="Approximate Area"
             ).add_to(m)
             st.write("Showing map centered on Aarhus.")
-            st_folium(m, height=350, width=350)
+        
+        st_folium(m, height=350, width=350)
 
         # --- Google Maps Link Button ---
         if pd.notna(address) and isinstance(address, str):
@@ -506,7 +524,7 @@ def main():
         
         if st.session_state.last_clicked:
             #google maps the address of the selected event
-            address = st.session_state.last_clicked.split("\n")[1]
+            address = st.session_state.last_clicked.split("\n")[0]
             Maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(address)}"
             st.link_button(f"Search '{address}' on Google Maps", Maps_url)
         else:

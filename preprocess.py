@@ -101,17 +101,43 @@ if __name__ == "__main__":
     # drop emails
     df = df.drop(columns=['Mailadresse', "Kolonne 16"], errors='ignore')
 
-    for index, event in df.iterrows():
-        address = event.get('Lokation')
-        coordinates = fetch_coordinates(address) # Fetch coordinates
-        if coordinates:
-            lat, lon = coordinates
+    # Add these lines before your for loop
+    df['Latitude'] = None
+    df['Longitude'] = None
+    df['Latitude_List'] = None  # Initialize as None, not as empty lists
+    df['Longitude_List'] = None
 
-            # add lat and lon to the event DataFrame
-            df.at[index, 'Latitude'] = lat
-            df.at[index, 'Longitude'] = lon
+    for index, event in df.iterrows():
+        address = event.get('Lokation').split("\n")
+        if len(address) == 1:
+            coordinates = fetch_coordinates(address[0])
+            if coordinates:
+                lat, lon = coordinates
+                df.at[index, 'Latitude'] = lat
+                df.at[index, 'Longitude'] = lon
+                # Store empty lists using list() to create new objects
+                df.at[index, 'Latitude_List'] = None  # or just skip setting this
+                df.at[index, 'Longitude_List'] = None  # or just skip setting this
+            else:
+                print(f"Could not find coordinates for '{address[0]}'.")
         else:
-            print(f"Could not find coordinates for '{address}'.")
+            latitudes = []
+            longitudes = []
+            for addr in address:
+                coordinates = fetch_coordinates(addr)
+                if coordinates:
+                    lat, lon = coordinates
+                    latitudes.append(lat)
+                    longitudes.append(lon)
+                else:
+                    print(f"Could not find coordinates for '{addr}'.")
+            
+            if latitudes and longitudes:
+                # Store lists as proper objects
+                df.at[index, 'Latitude_List'] = latitudes.copy()  # Use copy() to ensure we have a new object
+                df.at[index, 'Longitude_List'] = longitudes.copy()
+            else:
+                print(f"Could not find coordinates for any of the addresses: {address}")
 
     # Save the updated DataFrame with coordinates to a new CSV file
     df.to_csv("events_with_coordinates.csv", index=False)

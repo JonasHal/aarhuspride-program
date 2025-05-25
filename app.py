@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+from streamlit_scroll_to_top import scroll_to_here
 import os
 from PIL import Image
 import io
@@ -45,7 +46,7 @@ def load_data(file_path):
         st.error(f"An unexpected error occurred loading the data: {e}")
         logging.exception("Error during data loading:") # Log the full traceback
         return pd.DataFrame()
-    
+
 # --- Image Handling ---
 def find_image(organizer_name, image_dir=IMAGE_DIR):
     """Finds an image file in the specified directory matching the organizer name (case-insensitive)."""
@@ -94,6 +95,7 @@ def display_event_overview(df):
     # Function to handle button click
     def set_event_index(idx):
         st.session_state.selected_event_index = idx
+        st.session_state.scroll_to_top = True
     
     # Calculate responsive layout
     col_width = 200  # Same as minmax in CSS
@@ -290,6 +292,11 @@ def display_event_card(event, index):
 def display_event_details(event):
     """Displays the full details page for a selected event."""
 
+    # Handle scroll action
+    if st.session_state.scroll_to_top:
+        scroll_to_here(0, key='top')  # 0ms for instant scroll
+        st.session_state.scroll_to_top = False
+
     # --- Back Button ---
     if st.button("⬅️ Back to Overview", type="primary"):
         st.session_state.selected_event_index = None
@@ -468,6 +475,9 @@ def main():
     if "last_clicked" not in st.session_state:
         st.session_state.last_clicked = None
 
+    if 'scroll_to_top' not in st.session_state:
+        st.session_state.scroll_to_top = False
+
     # --- Sidebar ---
     st.sidebar.title("🗓️ Event Program")
 
@@ -585,6 +595,7 @@ def main():
         if isinstance(st.session_state.selected_event_index, int) and 0 <= st.session_state.selected_event_index < len(df):
             selected_event = df.iloc[st.session_state.selected_event_index]
             display_event_details(selected_event)
+
         else:
             st.error("Invalid event selected or the data might have changed. Returning to the overview.")
             logging.warning(f"Invalid selected_event_index encountered: {st.session_state.selected_event_index}")

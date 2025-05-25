@@ -292,9 +292,11 @@ def display_event_card(event, index):
 def display_event_details(event):
     """Displays the full details page for a selected event."""
 
+    st.caption("Click the **'Back to Overview'** button to return to the Homepage 🏳️‍🌈")
+
     # Handle scroll action
     if st.session_state.scroll_to_top:
-        scroll_to_here(0, key='top')  # 0ms for instant scroll
+        scroll_to_here(50, key='top')  # 0ms for instant scroll
         st.container(height=30)
         st.session_state.scroll_to_top = False
 
@@ -305,6 +307,7 @@ def display_event_details(event):
 
     # --- Event Title and Basic Info ---
     st.title(event.get('Titel på dit arrangement', 'No Title'))
+    
     st.caption(f"Organised by: {event.get('Arrangør', 'N/A')}")
     st.markdown("---")
 

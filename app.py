@@ -297,6 +297,7 @@ def display_event_details(event):
     # Handle scroll action
     if st.session_state.scroll_to_top:
         scroll_to_here(50, key='top')  # 0ms for instant scroll
+        st.container(height=30)
         st.session_state.scroll_to_top = False
 
     # --- Back Button ---

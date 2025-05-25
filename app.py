@@ -31,7 +31,6 @@ def load_data(file_path):
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
         df = df[df['Dato_dt'] >= today] # Keep events from today onwards
         
-        # Shuffle the rows randomly
         df = df.sample(frac=1).reset_index(drop=True)
 
         return df
@@ -70,7 +69,7 @@ def find_image(organizer_name, image_dir=IMAGE_DIR):
 
 def display_event_image(event):
     # Display Image
-    image_path = find_image(event.get('Arrangør', ''))
+    image_path = find_image(event.get('Billede eller PR', ''))
     if image_path:
         try:
             image = Image.open(image_path)
@@ -79,7 +78,7 @@ def display_event_image(event):
             st.warning(f"Could not load image: {e}")
             st.caption("Image Error")
     else:
-        st.caption(f"No PR image found for '{event.get('Arrangør', '')}'")
+        st.caption(f"No PR image found for '{event.get('Billede eller PR', '')}'")
 
 
 def display_event_overview(df):
@@ -145,20 +144,6 @@ def display_event_overview(df):
         object-fit: cover;
     }
     
-    /* Title styling */
-    .event-title {
-        font-weight: bold;
-        font-size: 1.1rem;
-        color: white;
-        padding: 1rem;
-        text-align: center;
-        flex-grow: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 80px;
-    }
-    
     /* Button styling */
     .stExpander .stButton button {
         width: 100%;
@@ -199,7 +184,7 @@ def display_event_overview(df):
                     
                     st.caption(f"{event.get("Start Tidspunkt", "N/A")}")
                     # Image container
-                    image_path = find_image(event.get('Arrangør', ''))
+                    image_path = find_image(event.get('Billede eller PR', ''))
                     if image_path:
                         try:
                             # Read image and convert to base64
@@ -223,7 +208,7 @@ def display_event_overview(df):
                     
                     # Display title
                     title = event.get('Titel på dit arrangement', f'Event {row_idx * num_cols + col_idx + 1}')
-                    st.markdown(f'<div class="event-title">{title}</div>', unsafe_allow_html=True)
+                    st.subheader(title, anchor=False)
                     
                     # Create a truly unique key using the original index
                     btn_key = f"btn_idx_{original_idx}"
@@ -379,7 +364,7 @@ def display_event_details(event):
     with col2:
         # --- PR Image ---
         st.subheader("PR Image", anchor=False)
-        image_path = find_image(event.get('Arrangør', ''))
+        image_path = find_image(event.get('Billede eller PR', ''))
         if image_path:
             try:
                 image = Image.open(image_path)
@@ -555,8 +540,11 @@ def main():
         st.markdown("Or Browse the upcoming events below.")
 
         st.checkbox("With Details", value=False, key="show_details")
+        st.checkbox("Order by Timestamp", value=True, key="order_by_time")
 
-        st.markdown("---")
+        # Shuffle the rows by time 
+        if st.session_state["order_by_time"]:
+            df = df.sort_values(by='Dato_dt').reset_index(drop=True)
 
         if df.empty:
             # This case should be less likely now with earlier checks, but good to keep

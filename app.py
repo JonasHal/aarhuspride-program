@@ -307,7 +307,7 @@ def display_event_details(event):
 
     # --- Event Title and Basic Info ---
     st.title(event.get('Titel på dit arrangement', 'No Title'))
-    
+
     st.caption(f"Organised by: {event.get('Arrangør', 'N/A')}")
     st.markdown("---")
 
@@ -598,6 +598,7 @@ def main():
         # Validate the index before accessing DataFrame row
         if isinstance(st.session_state.selected_event_index, int) and 0 <= st.session_state.selected_event_index < len(df):
             selected_event = df.iloc[st.session_state.selected_event_index]
+            st.session_state.scroll_to_top = True
             display_event_details(selected_event)
 
         else:

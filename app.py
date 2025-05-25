@@ -544,7 +544,7 @@ def main():
 
         # Shuffle the rows by time 
         if st.session_state["order_by_time"]:
-            df = df.sort_values(by='Dato_dt').reset_index(drop=True)
+            df = df.sort_values(by='Start Tidspunkt')
 
         if df.empty:
             # This case should be less likely now with earlier checks, but good to keep

@@ -18,6 +18,8 @@ def get_geocoder():
     return RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
 def fetch_coordinates(address):
+    address = address.replace(" 1.mf.", "").replace(" st", "")
+
     """Fetches latitude and longitude for a given address string."""
     if not isinstance(address, str) or not address.strip():
         logging.warning("Geocoding attempt with invalid address (None or empty).")

@@ -28,9 +28,9 @@ def load_data(file_path):
         df = pd.read_csv(file_path, parse_dates=['Dato_dt']) # Parse 'Dato_dt' as datetime during loading
 
         # Optional: Filter out past events (uncomment if needed)
-        today = pd.to_datetime(datetime.today().date())
+        now = pd.to_datetime(datetime.now())
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= today] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= now] # Keep events from today onwards
         
         df = df.sample(frac=1).reset_index(drop=True)
 

@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 import urllib.parse # Needed for Google Maps link
 from preprocess import fetch_coordinates # Import geocoding function from functions.py
+import pytz
 
 # --- Configuration and Setup ---
 st.set_page_config(layout="wide", page_title="Event Program")
@@ -28,7 +29,8 @@ def load_data(file_path):
         df = pd.read_csv(file_path, parse_dates=['Dato_dt']) # Parse 'Dato_dt' as datetime during loading
 
         # Optional: Filter out past events (uncomment if needed)
-        now = pd.to_datetime(datetime.now())
+        tz = pytz.timezone("Europe/Copenhagen")
+        now = pd.to_datetime(datetime.now().astimezone(tz)).replace(tzinfo=None)  # Make 'now' timezone-naive
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
         df = df[df['Dato_dt'] >= now] # Keep events from today onwards
         

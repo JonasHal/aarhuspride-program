@@ -32,7 +32,7 @@ def load_data(file_path):
         tz = pytz.timezone("Europe/Copenhagen")
         now = pd.to_datetime(datetime.now().astimezone(tz)).replace(tzinfo=None)  # Make 'now' timezone-naive
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        df = df[df['Dato_dt'] >= now] # Keep events from today onwards
+        #df = df[df['Dato_dt'] >= now] # Keep events from today onwards
         
         df = df.sample(frac=1).reset_index(drop=True)
 

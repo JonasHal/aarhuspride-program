@@ -32,7 +32,7 @@ def load_data(file_path):
         tz = pytz.timezone("Europe/Copenhagen")
         now = pd.to_datetime(datetime.now().astimezone(tz)).replace(tzinfo=None)  # Make 'now' timezone-naive
         df = df.dropna(subset=['Dato_dt']) # Drop rows where date conversion failed
-        #df = df[df['Dato_dt'] >= now] # Keep events from today onwards
+        df = df[df['Dato_dt'] >= now] # Keep events from today onwards
         
         df = df.sample(frac=1).reset_index(drop=True)
 
@@ -376,7 +376,6 @@ def display_event_details(event):
 
     with col2:
         # --- PR Image ---
-        st.subheader("PR Image", anchor=False)
         image_path = find_image(event.get('Billede eller PR', ''))
         if image_path:
             try:
@@ -567,8 +566,8 @@ def main():
             st.info("No upcoming events found in the data.")
         else:
             # seperate the events into two dfs one for warmup (before 31st of may) and one for ones after
-            warmup_df = df[df['Dato_dt'] < pd.to_datetime("2025-05-31")]
-            main_events_df = df[df['Dato_dt'] >= pd.to_datetime("2025-05-31")]
+            warmup_df = df[df['Dato_dt'] < pd.to_datetime("2026-05-29")]
+            main_events_df = df[df['Dato_dt'] >= pd.to_datetime("2026-05-29")]
 
             if warmup_df.empty:
                 hey = None # No warmup events to display, but we can still show the main events

@@ -551,7 +551,7 @@ def main():
                 st.rerun()
         else:
             st.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
-            
+        
         st.markdown("Or Browse the upcoming events below.")
 
         st.checkbox("With Details", value=False, key="show_details")

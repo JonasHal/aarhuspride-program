@@ -540,8 +540,31 @@ def main():
 
     # --- Page Rendering ---
     if st.session_state.selected_event_index is None:
+        # Add engaging scroll indicator
+        st.markdown("""
+        <div style="text-align: center; margin: 2rem 0;">
+            <h3>⬇️ Scroll down to explore all the amazing events! ⬇️</h3>
+            <div style="font-size: 2rem; animation: bounce 1s infinite;">
+                🏳️‍🌈 🎉 🎊
+            </div>
+        </div>
+        <style>
+            @keyframes bounce {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
         # --- Event Overview Page ---
-        st.title("🌈 Aarhus Pride Events 🌈", anchor=False)
+        # Centered title using Markdown + HTML
+        st.markdown(
+            "<h2 style='text-align: center;'>🌈 Aarhus Pride Events 🌈</h2>", 
+            unsafe_allow_html=True
+        )
+        
+        st.image("upcoming_events_poster.png", use_container_width=True)
+
         st.sidebar.markdown("---")
         # Optional: Add filters or other controls here later
         if not st.session_state.get('show_full_map', False):
@@ -551,8 +574,6 @@ def main():
                 st.rerun()
         else:
             st.button("Event Overview", on_click=lambda: st.session_state.update({"show_full_map": False, "selected_event_index": None}))
-        
-        st.markdown("Or Browse the upcoming events below.")
 
         st.checkbox("With Details", value=False, key="show_details")
         st.checkbox("Order by Timestamp", value=True, key="order_by_time")

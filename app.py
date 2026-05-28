@@ -555,6 +555,8 @@ def main():
             }
         </style>
         """, unsafe_allow_html=True)
+        
+        st.image("program.jpg", use_container_width=True)
 
         # --- Event Overview Page ---
         # Centered title using Markdown + HTML
